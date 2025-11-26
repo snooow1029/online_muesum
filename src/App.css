@@ -1,0 +1,136 @@
+.app {
+  width: 100vw;
+  height: 100vh;
+  position: relative;
+}
+
+.instructions {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 20px 40px;
+  border-radius: 10px;
+  text-align: center;
+  font-size: 18px;
+  pointer-events: none;
+  z-index: 100;
+  transition: opacity 0.3s;
+}
+
+.instructions.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.instructions h2 {
+  margin-bottom: 10px;
+  font-size: 24px;
+}
+
+.instructions p {
+  margin: 5px 0;
+  font-size: 16px;
+}
+
+.crosshair {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 20px;
+  height: 20px;
+  pointer-events: none;
+  z-index: 1000;
+}
+
+.crosshair::before,
+.crosshair::after {
+  content: '';
+  position: absolute;
+  background: white;
+  box-shadow: 0 0 2px rgba(0, 0, 0, 0.8);
+}
+
+.crosshair::before {
+  width: 2px;
+  height: 20px;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.crosshair::after {
+  width: 20px;
+  height: 2px;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.crosshair.interactive {
+  cursor: pointer;
+}
+
+.crosshair.interactive::before,
+.crosshair.interactive::after {
+  background: #4ade80;
+  box-shadow: 0 0 4px rgba(74, 222, 128, 0.8);
+}
+
+.artwork-modal {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.95);
+  color: white;
+  padding: 40px;
+  border-radius: 15px;
+  max-width: 600px;
+  width: 90%;
+  z-index: 2000;
+  display: none;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+}
+
+.artwork-modal.show {
+  display: block;
+}
+
+.artwork-modal h2 {
+  margin-top: 0;
+  margin-bottom: 20px;
+  font-size: 28px;
+  color: #fff;
+}
+
+.artwork-modal p {
+  margin-bottom: 15px;
+  line-height: 1.6;
+  font-size: 16px;
+}
+
+.artwork-modal .close-btn {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: transparent;
+  border: none;
+  color: white;
+  font-size: 28px;
+  cursor: pointer;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background 0.2s;
+}
+
+.artwork-modal .close-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
