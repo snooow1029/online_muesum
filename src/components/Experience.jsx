@@ -1,8 +1,10 @@
 import { useGLTF, Environment, KeyboardControls } from '@react-three/drei'
 import { Physics, RigidBody } from '@react-three/rapier'
+// import { EffectComposer, Bloom } from '@react-three/postprocessing' // Temporarily disabled due to version conflict
 import { useMemo } from 'react'
 import * as THREE from 'three'
 import Player from './Player'
+import TestArtifact from './TestArtifact'
 
 function GalleryModel() {
   const { scene } = useGLTF('/models/gallery.glb')
@@ -41,11 +43,12 @@ function GalleryModel() {
         const name = child.name.toLowerCase()
         const parentName = child.parent?.name?.toLowerCase() || ''
         
-        if (name.includes('art') || 
+        // 只標記真正的藝術品，不標記畫框（frame）本身
+        // 如果畫框內有畫作，應該標記畫作而不是畫框
+        if ((name.includes('art') && !name.includes('frame')) || 
             name.includes('painting') || 
             name.includes('artwork') ||
-            name.includes('frame') ||
-            parentName.includes('art') ||
+            (parentName.includes('art') && !parentName.includes('frame')) ||
             parentName.includes('painting')) {
           // Mark as artwork
           child.userData.isArtwork = true
@@ -91,7 +94,7 @@ function GalleryModel() {
 
 useGLTF.preload('/models/gallery.glb')
 
-export default function Experience() {
+export default function Experience({ onArtifactInteract }) {
   return (
     <KeyboardControls
       map={[
@@ -145,9 +148,18 @@ export default function Experience() {
           <meshStandardMaterial color="#654321" />
         </mesh>
 
+        {/* Test Artifact with edge glow */}
+        <TestArtifact position={[3, 3, 3]} onInteract={onArtifactInteract} />
+
         {/* Player Controller - start higher to avoid collision issues */}
         <Player position={[0, 10, 0]} />
       </Physics>
+      
+      {/* Post Processing - Bloom effect for glowing edges */}
+      {/* Temporarily disabled - uncomment when PostProcessing is compatible */}
+      {/* <EffectComposer>
+        <Bloom intensity={1.5} luminanceThreshold={0.5} luminanceSmoothing={0.9} />
+      </EffectComposer> */}
     </KeyboardControls>
   )
 }
