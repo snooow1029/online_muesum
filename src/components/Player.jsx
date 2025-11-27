@@ -37,7 +37,7 @@ export default function Player({ position = [0, 5, 0] }) {
       camera.position.set(position[0], position[1] + HEAD_HEIGHT, position[2])
       
       // 設定初始視角 (朝向 Z 軸負方向)
-      euler.current.set(0, 0, 0, 'YXZ')
+      euler.current.set(0, Math.PI / 2, 0, 'YZX')
       camera.quaternion.setFromEuler(euler.current)
       
       // 標記為已初始化，之後任何 re-render 都不會再進來這裡

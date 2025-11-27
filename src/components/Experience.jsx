@@ -152,7 +152,7 @@ export default function Experience({ onArtifactInteract }) {
         <TestArtifact position={[3, 3, 3]} onInteract={onArtifactInteract} />
 
         {/* Player Controller - start higher to avoid collision issues */}
-        <Player position={[0, 10, 0]} />
+        <Player position={[30, 20, 45]} />
       </Physics>
       
       {/* Post Processing - Bloom effect for glowing edges */}
