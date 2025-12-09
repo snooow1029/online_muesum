@@ -91,20 +91,49 @@
   box-shadow: 0 0 4px rgba(74, 222, 128, 0.8);
 }
 
+/* 毛玻璃風格覆蓋層 */
+.artwork-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 9998;
+  display: none;
+}
+
+.artwork-modal-overlay.show {
+  display: block;
+}
+
 .artwork-modal {
   position: fixed;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  background: rgba(0, 0, 0, 0.95);
-  color: #ffffff;
+  width: 700px;  /* 調整寬度 */
+  max-width: 90%;
+  max-height: 80vh;  /* 限制最大高度 */
   padding: 40px;
-  border-radius: 15px;
-  max-width: 600px;
-  width: 90%;
+  overflow-y: auto;  /* 內容過多時可滾動 */
+  
+  /* 核心：毛玻璃效果 */
+  background: rgba(255, 255, 255, 0.15); /* 極淡的白色 */
+  backdrop-filter: blur(12px); /* 背景模糊 */
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.2); /* 淡淡的邊框 */
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37); /* 柔和陰影 */
+  border-radius: 20px;
+  
+  /* 文字設定 */
+  color: #fff;
+  font-family: 'GenMin', 'Noto Sans TC', sans-serif; /* 使用你的中文字體 */
+  text-align: left;
   z-index: 9999;
   display: none;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
   pointer-events: auto;
 }
 
@@ -113,26 +142,42 @@
 }
 
 .artwork-modal * {
-  color: #ffffff;
+  color: #fff;
 }
 
 .artwork-modal h2 {
   margin-top: 0;
-  margin-bottom: 20px;
-  font-size: 28px;
-  color: #ffffff !important;
+  margin-bottom: 1rem;
+  font-size: 2rem;
   font-weight: bold;
+  border-bottom: 2px solid rgba(255, 165, 0, 0.5); /* 橘色底線 */
+  padding-bottom: 10px;
+  letter-spacing: 2px;
+  color: #fff !important;
 }
 
 .artwork-modal p {
   margin-bottom: 15px;
-  line-height: 1.6;
-  font-size: 16px;
-  color: #ffffff !important;
+  line-height: 1.8;
+  font-size: 20px;
+  color: #fff !important;
+  white-space: pre-line; /* 保留換行符，自動換行 */
+}
+
+.artwork-modal .art-question {
+  margin-top: 20px;
+  margin-bottom: 15px;
+  padding: 15px;
+  background: rgba(255, 165, 0, 0.15); /* 橘色背景 */
+  border-left: 3px solid rgba(255, 165, 0, 0.8);
+  border-radius: 5px;
+  line-height: 1.8;
+  font-size: 18px;
+  color: #fff !important;
 }
 
 .artwork-modal strong {
-  color: #ffffff !important;
+  color: #fff !important;
   font-weight: bold;
 }
 
@@ -140,10 +185,10 @@
   position: absolute;
   top: 15px;
   right: 15px;
-  background: transparent;
+  background: rgba(255, 255, 255, 0.1);
   border: none;
   color: white;
-  font-size: 28px;
+  font-size: 32px;
   cursor: pointer;
   width: 40px;
   height: 40px;
@@ -152,10 +197,22 @@
   justify-content: center;
   border-radius: 50%;
   transition: background 0.2s;
+  line-height: 1;
 }
 
 .artwork-modal .close-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* 音訊指示器 */
+.artwork-modal .audio-indicator {
+  margin-top: 20px;
+  padding: 10px 15px;
+  background: rgba(255, 165, 0, 0.2);
+  border-left: 3px solid rgba(255, 165, 0, 0.8);
+  border-radius: 5px;
+  font-size: 14px;
+  color: #fff !important;
 }
 
 .loading-screen {

@@ -1,0 +1,283 @@
+/* --- 變數設定 (方便統一調整) --- */
+:root {
+  --modal-bg: #ffffff;
+  --modal-text-primary: #2c2c2c;
+  --modal-text-secondary: #666666;
+  --accent-color: #ffaa00; /* 暖橘色 */
+  --font-serif: "GenWanMin", "Songti TC", "Noto Serif TC", serif; /* 宋體/明體 */
+  --font-sans: "Taipei Sans TC", "Noto Sans TC", sans-serif; /* 黑體 */
+}
+
+/* --- 遮罩層 (背景模糊) --- */
+.family-modal-overlay {
+  position: fixed;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0, 0, 0, 0.4); /* 稍微變淡 */
+  backdrop-filter: blur(8px); /* 磨砂玻璃效果 */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+  opacity: 0;
+  animation: fadeIn 0.3s forwards;
+}
+
+/* --- Modal 本體 --- */
+.family-modal {
+  background: var(--modal-bg);
+  width: 90%;
+  max-width: 900px;
+  max-height: 90vh;
+  border-radius: 12px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transform: translateY(20px);
+  animation: slideUp 0.4s 0.1s forwards; /* 延遲一點點進場 */
+}
+
+/* --- 內容滾動區 --- */
+.family-modal-content {
+  padding: 40px 50px;
+  overflow-y: auto;
+  /* 自定義滾動條 */
+  scrollbar-width: thin;
+  scrollbar-color: #ccc transparent;
+}
+
+/* --- Header --- */
+.modal-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.family-modal-title {
+  font-family: var(--font-serif);
+  font-size: 2.2rem;
+  color: var(--modal-text-primary);
+  margin-bottom: 15px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+}
+
+.title-underline {
+  width: 60px;
+  height: 3px;
+  background: var(--accent-color);
+  margin: 0 auto 20px auto;
+}
+
+.intro-text {
+  font-family: var(--font-sans);
+  color: var(--modal-text-secondary);
+  line-height: 1.8;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* --- 展覽動線 (Flow) --- */
+.exhibition-flow-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #f8f8f8;
+  padding: 25px;
+  border-radius: 8px;
+  margin-bottom: 40px;
+}
+
+.flow-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 15px;
+  flex: 1;
+}
+
+.flow-number {
+  font-family: var(--font-serif);
+  font-size: 2.5rem;
+  color: #e0e0e0; /* 很淡的灰色 */
+  font-weight: bold;
+  line-height: 1;
+}
+
+.flow-text h3 {
+  font-family: var(--font-serif);
+  font-size: 1.1rem;
+  margin: 0 0 5px 0;
+  color: var(--modal-text-primary);
+}
+
+.flow-text p {
+  font-size: 0.9rem;
+  color: var(--modal-text-secondary);
+  margin: 0;
+}
+
+.flow-divider {
+  width: 1px;
+  height: 50px;
+  background: #ddd;
+  margin: 0 30px;
+}
+
+/* --- 成員介紹 Grid --- */
+.family-section-title {
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
+  color: #999;
+  letter-spacing: 0.1em;
+  margin-bottom: 20px;
+  text-transform: uppercase;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 10px;
+}
+
+.family-members-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr); /* 兩欄 */
+  gap: 20px;
+  margin-bottom: 40px;
+}
+
+.family-member-card {
+  background: #fff;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  padding: 25px;
+  transition: transform 0.2s, box-shadow 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+
+.family-member-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+  border-color: var(--accent-color);
+}
+
+/* 左側橘色裝飾線 */
+.family-member-card::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 4px;
+  background: var(--accent-color);
+  opacity: 0.5;
+}
+
+.member-main-info {
+  margin-bottom: 12px;
+}
+
+.member-name {
+  font-family: var(--font-serif);
+  font-size: 1.2rem;
+  margin: 0 0 5px 0;
+  color: var(--modal-text-primary);
+}
+
+.member-age {
+  font-size: 0.9rem;
+  color: #999;
+  font-weight: normal;
+  margin-left: 8px;
+  font-family: var(--font-sans);
+}
+
+.role-title {
+  display: inline-block;
+  background: #f0f0f0;
+  color: #555;
+  font-size: 0.8rem;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-family: var(--font-sans);
+}
+
+.member-description {
+  font-size: 0.95rem;
+  color: var(--modal-text-secondary);
+  line-height: 1.6;
+  margin: 0;
+  font-family: var(--font-sans);
+}
+
+/* --- 底部按鈕 --- */
+.modal-footer {
+  text-align: center;
+}
+
+.start-tour-btn {
+  background: var(--modal-text-primary);
+  color: #fff;
+  border: none;
+  padding: 15px 50px;
+  font-size: 1.1rem;
+  border-radius: 30px; /* 圓角膠囊狀 */
+  cursor: pointer;
+  transition: all 0.3s;
+  font-family: var(--font-sans);
+  letter-spacing: 0.05em;
+}
+
+.start-tour-btn:hover {
+  background: var(--accent-color);
+  transform: scale(1.05);
+  box-shadow: 0 5px 15px rgba(255, 170, 0, 0.3);
+}
+
+/* --- 關閉按鈕 --- */
+.family-modal-close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: transparent;
+  border: none;
+  font-size: 2rem;
+  color: #ccc;
+  cursor: pointer;
+  z-index: 10;
+  transition: color 0.2s;
+}
+
+.family-modal-close:hover {
+  color: var(--accent-color);
+}
+
+/* --- 動畫 --- */
+@keyframes fadeIn {
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  to { transform: translateY(0); }
+}
+
+/* --- RWD 手機版調整 --- */
+@media (max-width: 768px) {
+  .family-members-grid {
+    grid-template-columns: 1fr; /* 手機變單欄 */
+  }
+  
+  .exhibition-flow-container {
+    flex-direction: column;
+    gap: 20px;
+  }
+  
+  .flow-divider {
+    width: 100%;
+    height: 1px;
+    margin: 10px 0;
+  }
+  
+  .family-modal-content {
+    padding: 30px 20px;
+  }
+  
+  .family-modal-title {
+    font-size: 1.8rem;
+  }
+}

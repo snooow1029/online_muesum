@@ -22,3 +22,10 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# 不需要的模型文件（只保留 exhibition_full.glb）
+public/models/exhibition_full_1207.glb
+public/models/exhibition_full_old.glb
+public/models/final_room.glb
+public/models/gallery.glb
+public/models/gallery_0.glb

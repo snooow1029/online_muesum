@@ -4,13 +4,16 @@ import { RigidBody, CapsuleCollider } from '@react-three/rapier'
 import { useKeyboardControls } from '@react-three/drei'
 import * as THREE from 'three'
 
-const SPEED = 10
+const SPEED = 20  // 增加移动速度（原来是 10）
 const HEAD_HEIGHT = 5
 
-export default function Player({ position = [0, 5, 0] }) {
+export default function Player({ position = [0, 5, 0], isSitting = false, seatPosition = null }) {
   const rigidBodyRef = useRef()
   const { camera, scene, gl } = useThree()
   const [, get] = useKeyboardControls()
+  
+  // 保存站起前的 Y 轴高度
+  const standingYRef = useRef(null)
   
   // 優化 1: 建立 Raycaster 變數，不需要每次都在 frame 裡宣告
   const raycaster = useRef(new THREE.Raycaster())
@@ -31,7 +34,7 @@ export default function Player({ position = [0, 5, 0] }) {
   const isInitialized = useRef(false)
 
   useEffect(() => {
-    // 🔥 關鍵修正：只有在「第一次」載入時才設定初始位置
+
     if (!isInitialized.current) {
       // 設定初始位置
       camera.position.set(position[0], position[1] + HEAD_HEIGHT, position[2])
@@ -43,9 +46,6 @@ export default function Player({ position = [0, 5, 0] }) {
       // 標記為已初始化，之後任何 re-render 都不會再進來這裡
       isInitialized.current = true
     } else {
-      // 🔥 如果不是第一次載入 (例如點擊導致的 re-render)，
-      // 我們要反過來讓 euler 變數去「同步」當前相機的角度
-      // 這樣視角就不會跳掉
       euler.current.setFromQuaternion(camera.quaternion)
     }
     
@@ -101,7 +101,6 @@ export default function Player({ position = [0, 5, 0] }) {
     
     window.enableMouseControl = () => {
       mouseControlEnabled.current = true
-      // 恢復時，確保 euler 已經同步了當前的相機角度
       euler.current.setFromQuaternion(camera.quaternion)
       gl.domElement.style.cursor = 'grab'
     }
@@ -119,10 +118,95 @@ export default function Player({ position = [0, 5, 0] }) {
       if (window.disableMouseControl) delete window.disableMouseControl
       if (window.enableMouseControl) delete window.enableMouseControl
     }
-  }, [camera, gl]) // 🔥 把 position 從依賴中拿掉，或者留著也沒關係，因為上面有 isInitialized 擋著
+  }, [camera, gl]) // 
 
   useFrame((state, delta) => {
     if (!rigidBodyRef.current) return
+
+    // --- 0. 坐下狀態處理 ---
+    if (isSitting && seatPosition) {
+      // 如果是剛坐下，保存當前的 Y 軸高度
+      if (standingYRef.current === null) {
+        const currentPos = rigidBodyRef.current.translation()
+        standingYRef.current = currentPos.y
+        console.log('Saved standing Y position:', standingYRef.current)
+      }
+      
+      // 禁用移動
+      const velocity = rigidBodyRef.current.linvel()
+      velocity.x = 0
+      velocity.y = 0
+      velocity.z = 0
+      rigidBodyRef.current.setLinvel(velocity)
+      
+      // 將 seatPosition 轉換為 THREE.Vector3（如果它是數組）
+      const seatPos = seatPosition instanceof THREE.Vector3 
+        ? seatPosition 
+        : new THREE.Vector3(seatPosition[0] || seatPosition.x, seatPosition[1] || seatPosition.y, seatPosition[2] || seatPosition.z)
+      
+      // 將玩家位置設置到座位位置（只改變 Y 軸高度，保持 X 和 Z 不變）
+      // 保持玩家當前的 X 和 Z 位置，只改變 Y 軸高度
+      const currentPos = rigidBodyRef.current.translation()
+      const newSeatPos = new THREE.Vector3(
+        currentPos.x, // 保持 X 不變
+        seatPos.y,    // 使用座位的 Y 高度
+        currentPos.z  // 保持 Z 不變
+      )
+      rigidBodyRef.current.setTranslation(newSeatPos, true)
+      
+      // 將相機平滑移動到新位置上方（保持當前視角）
+      const targetCameraPos = new THREE.Vector3(
+        camera.position.x, // 保持 X 不變
+        newSeatPos.y + HEAD_HEIGHT, // 只改變 Y 高度
+        camera.position.z  // 保持 Z 不變
+      )
+      // 使用更快的插值速度，讓位置切換更明顯
+      camera.position.lerp(targetCameraPos, 0.3)
+      
+      // 不改變視角，保持當前的相機朝向
+      // euler 和 camera.quaternion 保持不變
+      
+      // 禁用滑鼠控制
+      if (mouseControlEnabled.current) {
+        mouseControlEnabled.current = false
+        gl.domElement.style.cursor = 'default'
+        console.log('Mouse control disabled (sitting)')
+      }
+      
+      return // 坐下時不執行其他邏輯
+    }
+    
+    // 如果不在坐下狀態，恢復 Y 軸高度並確保滑鼠控制已啟用
+    if (!isSitting) {
+      // 如果之前保存了站起時的 Y 軸高度，恢復它
+      if (standingYRef.current !== null) {
+        const currentPos = rigidBodyRef.current.translation()
+        const restoredPos = new THREE.Vector3(
+          currentPos.x, // 保持 X 不變
+          standingYRef.current, // 恢復站起時的 Y 高度
+          currentPos.z  // 保持 Z 不變
+        )
+        rigidBodyRef.current.setTranslation(restoredPos, true)
+        
+        // 恢復相機的 Y 高度
+        const targetCameraPos = new THREE.Vector3(
+          camera.position.x,
+          restoredPos.y + HEAD_HEIGHT,
+          camera.position.z
+        )
+        camera.position.lerp(targetCameraPos, 0.3)
+        
+        console.log('Restored standing Y position:', standingYRef.current)
+        standingYRef.current = null // 清除保存的高度
+      }
+      
+      // 確保滑鼠控制已啟用
+      if (!mouseControlEnabled.current) {
+        mouseControlEnabled.current = true
+        gl.domElement.style.cursor = 'grab'
+        console.log('Mouse control re-enabled (standing)')
+      }
+    }
 
     // --- 1. 相機旋轉邏輯 ---
     // 只有在滑鼠控制啟用時才應用旋轉
@@ -141,6 +225,9 @@ export default function Player({ position = [0, 5, 0] }) {
     }
 
     // --- 2. 玩家移動邏輯 ---
+    // 坐下時不允許移動
+    if (isSitting) return
+    
     const keys = get()
     // 獲取相機的水平方向（不包含 Y 軸傾斜）
     const forwardVector = new THREE.Vector3()
@@ -222,11 +309,10 @@ export default function Player({ position = [0, 5, 0] }) {
           ))
 
         if (isArtwork) {
+          // 只使用有 artworkData 的物件，避免顯示默認的 "Artifact"
           foundArtwork = object.userData.artworkData || 
-                         (object.parent && object.parent.userData.artworkData) || {
-                           title: 'Artifact',
-                           description: 'Details...'
-                         }
+                         (object.parent && object.parent.userData.artworkData)
+          // 如果沒有 artworkData，不設置 foundArtwork（避免顯示默認值）
           break
         }
       }
