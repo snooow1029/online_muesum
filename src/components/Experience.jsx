@@ -34,7 +34,7 @@ const ARTWORK_DATA = {
     desc: '待補',
     // audio: '/audio/voice_01.mp3'
   },
-  'Art005': {
+  'Art018': {
     title: '爬樓梯的輪椅',
     desc: '這款輪椅和一般輪椅設計上的最大不同就是輪子。藉由將輪子連上附加的履帶，讓輪椅能像坦克一樣克服崎嶇的地形。除了將輪椅裝上履帶外，也能直接利用履帶系統本身直接搬運人體，機動性十足。',
     question: '既然履帶能克服較多地形，為何我們不捨棄輪子，全面採用履帶呢？',
@@ -665,47 +665,93 @@ useGLTF.preload('/models/exhibition_full.glb')
 
 // 牆壁文字組件
 function WallText() {
-  // 直接使用字符串路徑，Text 組件會自動加載字體
-  // 如果需要更好的標點符號支持，可以預先使用 useFont，但需要 Suspense 包裹
+  // 標題使用 GenMin 字體
+  const titleFont = "/fonts/GenMin.ttf"
+  // 前言內文使用 GenYoMin.ttf（更適合橫排，標點符號位置正確）
+  const bodyFont = "/fonts/GenYoMin.ttf" 
+
   return (
-    <>
-      {/* 展覽標題 - 放在玩家前方 */}
-      <Text
-        position={[25, 17, 47]} // 玩家前方3單位，高度10（玩家高度8+2）
-        rotation={[0, 0, 0]} // 面向玩家
-        fontSize={4}
-        color="#000000"
-        font="/fonts/GenMin.ttf" // 直接使用字符串路徑
-        anchorX="center"
-        anchorY="middle"
-        maxWidth={8}
-        lineHeight={1.2}
-      >
-        有你的橘
-      </Text>
+    // 建立一個 Group 把整塊文字包起來，方便統一移動位置
+    // 這裡設在原本兩個位置的中間點附近
+    <group position={[32, 13, 47]} rotation={[0, 0, 0]}>
       
-      {/* 展覽前言 - 放在玩家右側 */}
-      <Text
-        position={[38, 9, 47]} // 玩家右側5單位，高度9
-        rotation={[0, 0, 0]} // 旋轉貼合右側牆面
-        fontSize={0.8}
-        color="#333333"
-        font="/fonts/GenMin.ttf" // 直接使用字符串路徑
-        anchorX="center"
-        anchorY="middle"
-        maxWidth={4}
-        lineHeight={1.2}
-      >
-        從古至今，科技的發展已替人類解決不少問題。{'\n'}
-        從改善生存條件的水道建設和食品改良到讓我們能探索世界的交通工具，再到治療曾經致命的疾病，人類已經克服不少困境，彷彿無所不能。{'\n'}
-        然而，在追求越來越大的發現時，我們似乎經常忽略日常中仍有許多待解決的問題。{'\n'}
-        儘管這些問題往往被認為微不足道，但卻會在不知不覺中大大影響身邊人們生活的舒適度。{'\n'}
-        因此，我們希望能透過這個展覽來邀請各位一同思考並發掘更多不同的可能性。{'\n'}
-        說不定，更舒適友善的世界就在各位的一念之間呢！{'\n'}
-      </Text>
-    </>
+      {/* --- 左側區塊：標題區 (向左移動 -6) --- */}
+      <group position={[-2, 1, 0]}>
+        {/* 英文裝飾小字 (增加設計感) */}
+        <Text
+          position={[0, 2.5, 0]}
+          fontSize={0.5}
+          color="#aaaaaa"
+          font={titleFont}
+          anchorX="right" // 靠右對齊中線
+          anchorY="bottom"
+          letterSpacing={0.2}
+        >
+          ORANGE TECH EXHIBITION
+        </Text>
+
+        {/* 主標題 */}
+        <Text
+          position={[0, 0, 0]}
+          fontSize={4.5} // 稍微加大
+          color="#222222" // 深炭灰比純黑更有質感
+          font={titleFont}
+          anchorX="right" // 靠右對齊中線
+          anchorY="middle"
+        >
+          有你的橘
+        </Text>
+
+        {/* 副標題 - 使用橘色點綴 */}
+        <Text
+          position={[0, -2.5, 0]} 
+          fontSize={1.0}
+          color="#ffaa00" // 展覽主題色
+          font={titleFont}
+          anchorX="right" // 靠右對齊中線
+          anchorY="top"
+          letterSpacing={0.05}
+        >
+          ( 橘色科技不是橘色柯基 )
+        </Text>
+      </group>
+
+      {/* --- 中間：視覺分割線 --- */}
+      <mesh position={[0, 0, 0]}>
+        {/* 一條細長的豎線：寬0.1, 高12 */}
+        <boxGeometry args={[0.1, 12, 0.1]} />
+        <meshStandardMaterial color="#dddddd" />
+      </mesh>
+
+      {/* --- 右側區塊：前言內文 (向右移動 +2) --- */}
+      <group position={[2, 0, 0]}>
+        <Text
+          position={[0, 4, 0]} // 從上往下排
+          fontSize={0.7}
+          color="#444444"
+          font={bodyFont}
+          anchorX="left" // 🔥 關鍵：靠左對齊
+          anchorY="top"  // 🔥 關鍵：從頂部開始
+          maxWidth={7}   // 限制寬度，形成漂亮的長條狀
+          lineHeight={1.6} // 行距拉大，增加呼吸感
+          textAlign="justify" // 左右對齊 (如果字體支援) 或 left
+        >
+          從古至今，科技的發展已替人類解決不少問題。
+          從改善生存條件的水道建設和食品改良，到讓我們能探索世界的交通工具，
+          再到治療曾經致命的疾病。人類已經克服不少困境，彷彿無所不能。
+          {'\n\n'}
+          然而，在追求越來越大的發現時，我們似乎經常忽略日常中仍有許多待解決的問題。
+          儘管這些問題往往被認為微不足道，但卻會在不知不覺中大大影響身邊人們生活的舒適度。
+          {'\n\n'}
+          因此，我們希望能透過這個展覽，邀請各位思考並發掘更多不同的可能性。
+          說不定，更舒適友善的世界，就在各位的一念之間呢！
+        </Text>
+      </group>
+
+    </group>
   )
 }
+
 
 export default function Experience({ onArtifactInteract, onSit, isSitting, seatPosition }) {
   const [exhibitionScene, setExhibitionScene] = useState(null)
