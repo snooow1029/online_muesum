@@ -5,7 +5,7 @@ import { useKeyboardControls } from '@react-three/drei'
 import * as THREE from 'three'
 
 const SPEED = 20  // 增加移动速度（原来是 10）
-const HEAD_HEIGHT = 5
+const HEAD_HEIGHT = 6
 
 export default function Player({ position = [0, 5, 0], isSitting = false, seatPosition = null }) {
   const rigidBodyRef = useRef()
