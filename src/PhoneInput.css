@@ -1,0 +1,244 @@
+/* --- 1. 全局變數與字體 --- */
+:root {
+  --phone-bg: #fdfdfd;       /* 手機螢幕背景 */
+  --accent-orange: #ffaa00;  /* 橘色科技主色 */
+  --accent-gray: #5c5c5c;    /* 煩惱模式主色 */
+  --text-dark: #2c2c2c;
+  --text-gray: #888888;
+  --bg-input: #ffffff;
+  
+  /* 字體設定 (配合你的展覽風格) */
+  --font-serif: "GenWanMin", "Songti TC", serif; 
+  --font-sans: "Taipei Sans TC", sans-serif;
+}
+
+/* --- 2. 遮罩層與手機外框 (擬真設計) --- */
+.phone-overlay {
+  position: fixed;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(10px); /* 更強的模糊，凸顯手機 */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 3000;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.phone-overlay.active { opacity: 1; }
+
+.phone-frame {
+  width: 360px;
+  height: 720px;
+  background: #1a1a1a;
+  border-radius: 48px;
+  border: 10px solid #2a2a2a;
+  box-shadow: 
+    0 0 0 2px #444, 
+    0 30px 60px rgba(0,0,0,0.6);
+  position: relative;
+  overflow: hidden;
+  transform: translateY(50px);
+  animation: slideUp 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+@keyframes slideUp { to { transform: translateY(0); } }
+
+/* 手機瀏海與按鈕裝飾 */
+.phone-notch {
+  position: absolute;
+  top: 0; left: 50%; transform: translateX(-50%);
+  width: 120px; height: 28px;
+  background: #000;
+  border-bottom-left-radius: 16px; border-bottom-right-radius: 16px;
+  z-index: 20;
+}
+.phone-side-btn { position: absolute; background: #222; border-radius: 4px; left: -12px; width: 4px; }
+.volume-up { top: 100px; height: 40px; }
+.volume-down { top: 150px; height: 40px; }
+.power { right: -12px; left: auto; top: 120px; height: 60px; }
+
+/* --- 3. 螢幕內部佈局 --- */
+.phone-screen {
+  width: 100%; height: 100%;
+  background: var(--phone-bg);
+  border-radius: 38px; /* 配合外框圓角 */
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.screen-content {
+  flex: 1;
+  padding: 20px 28px;
+  display: flex;
+  flex-direction: column;
+  padding-top: 40px; /* 避開瀏海 */
+}
+
+/* 狀態列 */
+.status-bar {
+  position: absolute; top: 10px; width: 100%;
+  display: flex; justify-content: space-between;
+  padding: 0 24px; font-size: 12px; font-weight: 600; color: #000;
+  z-index: 10;
+}
+.status-icons { display: flex; gap: 5px; align-items: center; }
+.battery { width: 22px; height: 10px; border: 1px solid #999; border-radius: 3px; padding: 1px; }
+.battery-level { width: 60%; height: 100%; background: #000; }
+
+/* Header */
+.app-header { text-align: center; margin-bottom: 20px; }
+.app-subtitle { font-size: 0.7rem; letter-spacing: 0.2em; color: #999; text-transform: uppercase; font-family: var(--font-sans); }
+.app-title { font-family: var(--font-serif); font-size: 1.6rem; margin: 5px 0 0 0; color: var(--text-dark); }
+
+/* --- 4. 關鍵互動：Tab 切換 --- */
+.mode-tabs {
+  display: flex;
+  background: #f0f0f0;
+  border-radius: 14px;
+  padding: 4px;
+  margin-bottom: 25px;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.mode-tab {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 12px;
+  font-size: 0.95rem;
+  font-family: var(--font-sans);
+  color: var(--text-gray);
+  cursor: pointer;
+  border-radius: 10px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-weight: 500;
+}
+
+/* Tab 激活狀態 */
+.mode-tab.active {
+  background: #fff;
+  color: var(--text-dark);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  font-weight: 600;
+  transform: scale(1.02);
+}
+
+/* --- 5. 提問卡片 (顏色隨模式變換) --- */
+.prompt-card {
+  background: #fff;
+  padding: 20px;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+  margin-bottom: 25px;
+  border-left: 4px solid transparent; /* 預備變色 */
+  transition: border-color 0.4s ease, transform 0.3s ease;
+}
+
+/* 🌟 顏色邏輯：灰色 vs 橘色 */
+.prompt-card.problem { border-left-color: var(--accent-gray); }
+.prompt-card.solution { border-left-color: var(--accent-orange); }
+
+.prompt-label { font-size: 0.75rem; color: #aaa; margin: 0 0 8px 0; font-family: var(--font-sans); }
+.system-question {
+  font-family: var(--font-serif);
+  font-size: 1.1rem;
+  line-height: 1.5;
+  color: var(--text-dark);
+  margin: 0;
+  font-style: italic;
+}
+
+/* --- 6. 輸入表單 --- */
+.input-form { display: flex; flex-direction: column; gap: 20px; }
+
+.input-group label {
+  display: block; font-size: 0.9rem; color: var(--text-gray); margin-bottom: 8px; font-family: var(--font-sans);
+}
+
+.elegant-textarea {
+  width: 100%;
+  min-height: 140px; /* 增加高度 */
+  border: none;
+  background: #fff; /* 類似紙張 */
+  border-bottom: 2px solid #eee;
+  padding: 15px;
+  font-size: 1rem;
+  font-family: var(--font-sans);
+  color: var(--text-dark);
+  transition: all 0.3s;
+  resize: none;
+  line-height: 1.6;
+}
+
+.elegant-textarea:focus {
+  outline: none;
+  background: #fafafa;
+  border-bottom-color: var(--text-dark); /* 預設深色，下面會覆蓋 */
+}
+
+/* 讓 Focus 顏色也跟隨模式 */
+.prompt-card.solution ~ .input-form .elegant-textarea:focus {
+  border-bottom-color: var(--accent-orange);
+}
+
+/* --- 7. 發送按鈕 (動態變色) --- */
+.submit-btn {
+  margin-top: 10px;
+  width: 100%;
+  padding: 16px;
+  border: none;
+  border-radius: 14px;
+  font-size: 1rem;
+  font-weight: 500;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  font-family: var(--font-sans);
+}
+
+/* 按鈕顏色變化 */
+.submit-btn.problem { background: var(--accent-gray); }
+.submit-btn.solution { background: var(--accent-orange); }
+
+/* Hover 效果 */
+.submit-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,0.15); }
+.submit-btn:disabled { background: #ccc; cursor: not-allowed; transform: none; box-shadow: none; }
+
+/* --- 8. 成功畫面 --- */
+.submit-success {
+  text-align: center;
+  padding: 30px 0;
+  animation: fadeIn 0.5s;
+}
+.success-icon { font-size: 3rem; margin-bottom: 10px; display: block; animation: bounce 1s infinite; }
+.success-hint { font-size: 0.85rem; color: #999; margin-top: 5px; }
+
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+
+/* --- Footer --- */
+.exit-text-btn {
+  margin-top: auto;
+  background: none; border: none;
+  color: #aaa; font-size: 0.85rem;
+  cursor: pointer; padding: 20px;
+  font-family: var(--font-serif);
+  transition: color 0.3s;
+}
+.exit-text-btn:hover { color: var(--text-dark); }
+
+.home-indicator {
+  position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%);
+  width: 120px; height: 5px; background: #000; border-radius: 10px; opacity: 0.2;
+}
+
+/* RWD */
+@media (max-width: 400px) {
+  .phone-frame { width: 100%; height: 100%; border-radius: 0; border: none; transform: none; }
+  .screen-content { padding: 20px; padding-top: 60px; }
+}

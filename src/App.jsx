@@ -1,10 +1,11 @@
-import React, { Suspense, useState, useEffect, useCallback } from 'react'
+import React, { Suspense, useState, useEffect, useCallback, useMemo } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { useProgress, Html } from '@react-three/drei'
 import { EffectComposer, Bloom } from '@react-three/postprocessing'
 import Experience from './components/Experience'
 import FamilyFrame from './components/FamilyFrame'
 import FamilyIntroModal from './components/FamilyIntroModal'
+import PhoneInput from './PhoneInput'
 import './App.css'
 
 function LoadingFallback() {
@@ -20,6 +21,9 @@ function LoadingFallback() {
 function LoadingScreen() {
   const { progress, active } = useProgress()
   
+  // 使用 useMemo 避免在渲染過程中觸發狀態更新
+  const progressValue = useMemo(() => progress, [progress])
+  
   if (!active) return null
   
   return (
@@ -30,10 +34,10 @@ function LoadingScreen() {
           <div className="loading-bar-container">
             <div 
               className="loading-bar" 
-              style={{ width: `${progress}%` }}
+              style={{ width: `${progressValue}%` }}
             />
           </div>
-          <p>{Math.round(progress)}%</p>
+          <p>{Math.round(progressValue)}%</p>
           <p style={{ fontSize: '14px', marginTop: '10px', opacity: 0.7 }}>
             模型大小：35MB，請稍候...
           </p>
@@ -49,9 +53,76 @@ function App() {
   const [selectedArtwork, setSelectedArtwork] = useState(null)
   const [showModal, setShowModal] = useState(false)
   const [artifactData, setArtifactData] = useState(null)
-  const [isSitting, setIsSitting] = useState(false)
-  const [seatPos, setSeatPos] = useState(null)
   const [showFamilyModal, setShowFamilyModal] = useState(false)
+  // 第二展間相關狀態
+  const [showPhoneInput, setShowPhoneInput] = useState(false)
+  
+  // 初始的文字雲資料
+  const INITIAL_WORD_CLOUD_DATA = [
+    { 
+      problem: "褲腳又濕了一截，捷運上那把濕雨傘能不能離我遠點...", 
+      solution: "奈米疏水防護塗層" 
+    },
+    { 
+      problem: "只剩隻靈活的手，鍵盤上的每個按鍵怎麼都變得那麼遙遠？", 
+      solution: "視線追蹤輸入法" 
+    },
+    { 
+      problem: "剛出門心就懸著... 瓦斯爐上的火，我到底關了沒？", 
+      solution: "智慧爐具遠端管家" 
+    },
+    { 
+      problem: "半夜的窸窣聲... 該不會又是那些不速之客跑進家裡了吧？", 
+      solution: "超音波智能驅逐網" 
+    },
+    { 
+      problem: "如果不戴眼鏡，世界就只剩下模糊的色塊...", 
+      solution: "自動對焦仿生眼" 
+    },
+    { 
+      problem: "大家都笑得好開心，但我只聽到嗡嗡聲... 算了，跟著點頭裝懂就好。", 
+      solution: "AI 人聲增幅助聽器" 
+    },
+    { 
+      problem: "看著那長長的樓梯，腳還沒抬起來，膝蓋就已經開始隱隱作痛了...", 
+      solution: "智慧動能護膝" 
+    },
+    { 
+      problem: "盯著藥盒發呆... 等等，我早上那顆紅色的藥到底吃了沒？完全想不起來。", 
+      solution: "用藥管家記憶盒" 
+    },
+    { 
+      problem: "手一點力氣都使不上，明明只是想喝口水，怎麼連轉開瓶蓋都像在搏鬥？", 
+      solution: "外骨骼握力輔助手套" 
+    },
+    { 
+      problem: "把電視開得很大聲，只是怕家裡太安靜... 靜得讓人心慌。", 
+      solution: "全息陪伴投影系統" 
+    },
+    { 
+      problem: "超市標籤上的字像螞蟻一樣小，保存期限到底是今天還是下個月？", 
+      solution: "AR 即時讀字放大鏡" 
+    },
+    { 
+      problem: "浴室地板好滑，好怕洗澡時摔下去，躺在那裡沒人知道...", 
+      solution: "非接觸式跌倒偵測雷達" 
+    },
+    { 
+      problem: "半夜被冷醒，蓋了被子又熱醒，身體好像失去了調節溫度的能力。", 
+      solution: "生物感測溫控舒眠被" 
+    },
+    { 
+      problem: "明明上一秒才放在桌上的... 錢包是不是又長腳跑掉了？", 
+      solution: "Air tag" 
+    },
+    { 
+      problem: "心跳突然跳得好快，這只是心悸還是出事了？現在打電話會不會麻煩孩子？", 
+      solution: "ECG監測貼片" 
+    }
+  ]
+  
+  const [wordCloudData, setWordCloudData] = useState(INITIAL_WORD_CLOUD_DATA) // 存儲用戶提交的文字雲數據（包含初始數據）
+  const [isInFutureRoom, setIsInFutureRoom] = useState(false) // 是否在第二展間
 
   // Handle artifact interaction - moved outside useEffect
   const handleArtifactInteract = (data) => {
@@ -65,28 +136,13 @@ function App() {
     }
   }
 
-  // 坐下處理
-  const handleSit = (position) => {
-    setIsSitting(true)
-    setSeatPos(position)
+  // 處理懶骨頭點擊：只顯示手機輸入界面，不改變視角
+  const handleSit = (position, isFutureRoomSeat = false) => {
+    // 如果在第二展間點擊懶骨頭，顯示手機輸入界面
+    if (isFutureRoomSeat) {
+      setShowPhoneInput(true)
+    }
   }
-
-  // 站起處理
-  const handleStandUp = useCallback(() => {
-    console.log('Standing up...')
-    setIsSitting(false)
-    setSeatPos(null)
-    // 恢復 FPS 控制
-    // 使用 setTimeout 确保状态更新后再恢复鼠标控制
-    setTimeout(() => {
-      if (window.enableMouseControl) {
-        console.log('Enabling mouse control')
-        window.enableMouseControl()
-      } else {
-        console.warn('enableMouseControl function not found')
-      }
-    }, 100)
-  }, [])
 
   useEffect(() => {
     const handleClick = (e) => {
@@ -104,11 +160,11 @@ function App() {
     }
   }, [isLookingAtArtwork, selectedArtwork])
 
-  // ESC 键处理：站起
+  // ESC 键处理：关闭手机输入界面
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (e.key === 'Escape' && isSitting) {
-        handleStandUp()
+      if (e.key === 'Escape' && showPhoneInput) {
+        setShowPhoneInput(false)
       }
     }
 
@@ -117,7 +173,7 @@ function App() {
     return () => {
       document.removeEventListener('keydown', handleKeyDown)
     }
-  }, [isSitting, handleStandUp])
+  }, [showPhoneInput])
 
   // Expose state setters to window for Player component to use
   useEffect(() => {
@@ -159,8 +215,7 @@ function App() {
           <Experience 
             onArtifactInteract={handleArtifactInteract} 
             onSit={handleSit}
-            isSitting={isSitting}
-            seatPosition={seatPos}
+            wordCloudData={wordCloudData}
           />
           {/* 家庭肖像框 - 入口交互 */}
           <FamilyFrame 
@@ -241,25 +296,19 @@ function App() {
         </>
       )}
 
-      {/* 坐下時顯示的 UI */}
-      {isSitting && (
-        <div className="stand-up-ui" style={{
-          position: 'fixed',
-          bottom: '20px',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          padding: '15px 30px',
-          backgroundColor: 'rgba(0, 0, 0, 0.7)',
-          color: 'white',
-          borderRadius: '8px',
-          zIndex: 1000,
-          fontSize: '16px',
-          fontFamily: 'Arial, sans-serif',
-          pointerEvents: 'none' // 不拦截点击事件
-        }}>
-          按 ESC 鍵站起
-        </div>
-      )}
+
+      {/* 手機輸入界面 - 第二展間共創功能 */}
+      <PhoneInput
+        isOpen={showPhoneInput}
+        onSubmit={(data) => {
+          // 將用戶提交的問題和解決方案添加到文字雲數據中
+          setWordCloudData(prev => [...prev, data])
+          console.log('新增文字雲數據:', data)
+        }}
+        onClose={() => {
+          setShowPhoneInput(false)
+        }}
+      />
     </div>
   )
 }

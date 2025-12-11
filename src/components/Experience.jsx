@@ -1,10 +1,12 @@
 import { useGLTF, Environment, KeyboardControls, useVideoTexture, Text } from '@react-three/drei'
 import { Physics, RigidBody } from '@react-three/rapier'
 // EffectComposer 和 Bloom 已移到 App.jsx，這裡不需要導入
-import { useMemo, useEffect, useState, useRef } from 'react'
+import { useMemo, useEffect, useState, useRef, useCallback } from 'react'
 import * as THREE from 'three'
 import { useThree } from '@react-three/fiber'
 import Player from './Player'
+import FutureRoom from '../FutureRoom'
+import ErrorBoundary from './ErrorBoundary'
 // TestArtifact 測試組件已移除，不再需要
 // Exhibits 組件已整合到 GalleryModel 中，不再需要單獨導入
 
@@ -90,7 +92,7 @@ const ARTWORK_DATA = {
   // ... 對應你的 Blender 物件名稱（支援 Art_XX 或 ArtXXX 格式）
 }
 
-function GalleryModel({ onSit, onSceneReady, openModal }) {
+function GalleryModel({ onSit, onSceneReady, openModal, isFutureRoom = false }) {
   const { gl } = useThree()
   const [hovered, setHovered] = useState(null)
   const audioPlayer = useRef(null)
@@ -306,8 +308,23 @@ function GalleryModel({ onSit, onSceneReady, openModal }) {
     clonedScene.traverse((child) => {
       // ---  偵測穹頂 (Dome) ---
       // 判斷條件：物件是 Mesh 且 材質名稱叫 'DomeScreen' (或物件名稱叫 DomeScreen)
+      // 注意：跳過 final room 區域的穹頂，讓 FutureRoom 組件處理
       if (child.isMesh && (child.material.name === 'DomeScreen' || child.name === 'DomeScreen')) {
-        console.log('Found Dome:', child.name, 'Material:', child.material.name)
+        // 檢查是否是 final room 的穹頂（通過位置判斷）
+        const worldPos = new THREE.Vector3()
+        child.getWorldPosition(worldPos)
+        const isFutureRoomDome = 
+          worldPos.z < -50 ||  // final room 在 z < -50 的區域（根據實際位置調整）
+          worldPos.x < -50     // 或者 x < -50
+        
+        if (isFutureRoomDome) {
+          console.log('GalleryModel: Skipping future room dome (will be handled by FutureRoom):', child.name, 'at', worldPos)
+          // 標記這個穹頂已經被 FutureRoom 處理，避免重複處理
+          child.userData.isFutureRoomDome = true
+          return // 跳過這個穹頂，讓 FutureRoom 處理
+        }
+        
+        console.log('GalleryModel: Found first room Dome:', child.name, 'Material:', child.material.name, 'at', worldPos)
         // 賦予它發光的影片材質（只有在视频加载成功时才应用）
         if (videoTexture) {
           console.log('Applying video texture to dome')
@@ -473,19 +490,39 @@ function GalleryModel({ onSit, onSceneReady, openModal }) {
       // --- 🛋️ 偵測懶骨頭 (Bean Bags) ---
       // 判斷條件：名字裡面包含 "BeanBag"、"bean"、"seat" 或特定的物件名稱
       const name = child.name ? child.name.toLowerCase() : ''
-      const isBeanBag = name.includes('beanbag') 
+      const isBeanBag = name.includes('beanbag') || name.includes('bean')
       
       if (isBeanBag) {
         // 幫它打上標記，之後點擊時才知道這是椅子
         child.userData.isSeat = true
+        
+        // 判斷是否屬於 final room（第二展間）的懶骨頭
+        // 可以通過名稱、位置或其他標識來區分
+        // 注意：需要根據實際模型調整判斷條件
+        const worldPos = new THREE.Vector3()
+        child.getWorldPosition(worldPos)
+        
+        const isFutureRoomSeat = 
+          name.includes('future') || 
+          name.includes('room2') || 
+          name.includes('final') ||
+          // 或者通過位置判斷（可以根據實際模型調整）
+          worldPos.z > 50 ||  // 假設 final room 在 z > 50 的區域
+          worldPos.x > 50 ||   // 或者 x > 50
+          worldPos.z < -50     // 或者 z < -50（根據實際模型位置調整）
+        
+        if (isFutureRoomSeat) {
+          child.userData.isFutureRoomSeat = true
+          console.log('✅ Found FUTURE ROOM beanbag seat:', child.name, 'at world position:', worldPos)
+        } else {
+          console.log('📍 Found FIRST ROOM beanbag seat:', child.name, 'at world position:', worldPos)
+        }
         
         // 確保可以點擊
         if (child.isMesh) {
           // 確保 mesh 可以接收射線檢測（raycast）
           child.raycast = THREE.Mesh.prototype.raycast
         }
-        
-        console.log('Found beanbag seat:', child.name)
         
         // 可選：把懶骨頭顏色稍微調亮一點，或者加上邊緣光讓玩家知道可點
         // child.material.emissive = new THREE.Color(0x222222)
@@ -583,12 +620,16 @@ function GalleryModel({ onSit, onSceneReady, openModal }) {
     // 先檢查是否是懶骨頭
     const isSeat = obj.userData.isSeat || obj.parent?.userData.isSeat
     if (isSeat && onSit) {
-      const seatPos = new THREE.Vector3()
+      // 檢查是否是第二展間（final room）的懶骨頭
       const targetObject = obj.userData.isSeat ? obj : obj.parent
-      targetObject.getWorldPosition(seatPos)
-      seatPos.y += 0.5
-      console.log('Seat clicked! Position:', seatPos)
-      onSit([seatPos.x, seatPos.y, seatPos.z])
+      const isFutureRoomSeat = 
+        targetObject.userData.isFutureRoomSeat || 
+        obj.userData.isFutureRoomSeat ||
+        obj.parent?.userData.isFutureRoomSeat
+      
+      console.log('Seat clicked! isFutureRoom:', isFutureRoomSeat)
+      // 只傳遞 isFutureRoom 標識，不傳遞位置（因為不需要移動視角）
+      onSit(null, isFutureRoomSeat)
       return
     }
     
@@ -753,8 +794,17 @@ function WallText() {
 }
 
 
-export default function Experience({ onArtifactInteract, onSit, isSitting, seatPosition }) {
+export default function Experience({ onArtifactInteract, onSit, wordCloudData = [] }) {
   const [exhibitionScene, setExhibitionScene] = useState(null)
+  
+  // 處理懶骨頭點擊：只觸發手機輸入界面，不改變視角
+  const handleSeatClick = useCallback((position, isFutureRoom = false) => {
+    console.log('handleSeatClick called:', { position, isFutureRoom })
+    if (onSit) {
+      // 只傳遞 isFutureRoom 標識，不傳遞位置（因為不需要移動視角）
+      onSit(null, isFutureRoom)
+    }
+  }, [onSit])
   
   return (
     <KeyboardControls
@@ -766,6 +816,9 @@ export default function Experience({ onArtifactInteract, onSit, isSitting, seatP
       ]}
     >
       <Physics gravity={[0, 0, 0]}>
+        {/* Fog - 增加空間的空氣感 */}
+        <fog attach="fog" args={['#000000', 50, 200]} />
+        
         {/* Basic Lighting - 低強度環境光，讓場景可見但保持展品發光效果 */}
         {/* 低強度環境光，讓場景可見 */}
         <ambientLight intensity={2} />
@@ -786,12 +839,23 @@ export default function Experience({ onArtifactInteract, onSit, isSitting, seatP
           </mesh>
         </RigidBody>
 
-        {/* Gallery Model - 整合了藝術品互動和懶骨頭功能 */}
+        {/* Gallery Model - 整合了藝術品互動和懶骨頭功能（第一展間） */}
         <GalleryModel 
-          onSit={onSit} 
+          onSit={handleSeatClick} 
           onSceneReady={setExhibitionScene}
           openModal={onArtifactInteract}
         />
+
+        {/* Future Room - 第二展間：共創體驗（穹頂文字雲） */}
+        {/* 注意：需要 /models/final_room.glb 文件存在才能使用 */}
+        {/* 如果模型文件不存在，ErrorBoundary 會捕獲錯誤，不會導致整個應用崩潰 */}
+        <ErrorBoundary fallback={null}>
+          <FutureRoom 
+            onSit={handleSeatClick}
+            wordData={wordCloudData}
+            clonedScene={exhibitionScene}
+          />
+        </ErrorBoundary>
 
         {/* Wall Text - 展覽標題 */}
         <WallText />
@@ -813,8 +877,6 @@ export default function Experience({ onArtifactInteract, onSit, isSitting, seatP
         {/* 例如：[0, 1.5, 0] 会让 Player 更低，[0, 3, 0] 会让 Player 更高 */}
         <Player 
           position={[35, 8, 60]} 
-          isSitting={isSitting}
-          seatPosition={seatPosition}
         />
       </Physics>
       
