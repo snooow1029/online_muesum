@@ -7,6 +7,7 @@ import { useThree } from '@react-three/fiber'
 import Player from './Player'
 import FutureRoom from '../FutureRoom'
 import ErrorBoundary from './ErrorBoundary'
+import MobileControls from './MobileControls'
 // TestArtifact 測試組件已移除，不再需要
 // Exhibits 組件已整合到 GalleryModel 中，不再需要單獨導入
 
@@ -879,6 +880,9 @@ export default function Experience({ onArtifactInteract, onSit, wordCloudData = 
           position={[35, 8, 60]} 
         />
       </Physics>
+      
+      {/* Mobile Controls - 移动端虚拟摇杆 */}
+      <MobileControls />
       
       {/* Post Processing - Bloom effect for glowing edges */}
       {/* 暂时注释掉，避免错误 */}

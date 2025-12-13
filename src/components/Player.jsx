@@ -38,6 +38,11 @@ export default function Player({ position = [0, 5, 0], isSitting = false, seatPo
   const rotationDelta = useRef({ x: 0, y: 0 })
   const mouseControlEnabled = useRef(true) // 控制是否啟用滑鼠控制
   const PI_2 = Math.PI / 2
+  
+  // Touch control refs
+  const isTouching = useRef(false)
+  const lastTouchPos = useRef({ x: 0, y: 0 })
+  const touchId = useRef(null) // 追踪当前触摸点ID
 
   // 新增一個 Ref 來記錄是否剛載入
   const isInitialized = useRef(false)
@@ -147,16 +152,75 @@ export default function Player({ position = [0, 5, 0], isSitting = false, seatPo
       gl.domElement.style.cursor = 'grab'
     }
     
+    // Touch event handlers
+    const handleTouchStart = (event) => {
+      if (!mouseControlEnabled.current) return
+      event.preventDefault()
+      
+      // 只处理第一个触摸点
+      if (event.touches.length === 1 && touchId.current === null) {
+        const touch = event.touches[0]
+        touchId.current = touch.identifier
+        isTouching.current = true
+        lastTouchPos.current = { x: touch.clientX, y: touch.clientY }
+        rotationDelta.current.x = 0
+        rotationDelta.current.y = 0
+      }
+    }
+    
+    const handleTouchMove = (event) => {
+      if (!isTouching.current || !mouseControlEnabled.current) return
+      event.preventDefault()
+      
+      // 找到对应的触摸点
+      const touch = Array.from(event.touches).find(t => t.identifier === touchId.current)
+      if (!touch) return
+      
+      const deltaX = touch.clientX - lastTouchPos.current.x
+      const deltaY = touch.clientY - lastTouchPos.current.y
+      
+      rotationDelta.current.x += deltaX
+      rotationDelta.current.y += deltaY
+      
+      lastTouchPos.current = { x: touch.clientX, y: touch.clientY }
+    }
+    
+    const handleTouchEnd = (event) => {
+      // 检查当前触摸点是否结束
+      const touch = Array.from(event.changedTouches).find(t => t.identifier === touchId.current)
+      if (touch) {
+        isTouching.current = false
+        touchId.current = null
+      }
+    }
+    
+    const handleTouchCancel = () => {
+      isTouching.current = false
+      touchId.current = null
+    }
+    
     gl.domElement.addEventListener('mousemove', handleMouseMove)
     gl.domElement.addEventListener('mousedown', handleMouseDown)
     document.addEventListener('mouseup', handleMouseUp) 
     document.addEventListener('keydown', handleKeyDown)
+    
+    // Touch events
+    gl.domElement.addEventListener('touchstart', handleTouchStart, { passive: false })
+    gl.domElement.addEventListener('touchmove', handleTouchMove, { passive: false })
+    gl.domElement.addEventListener('touchend', handleTouchEnd)
+    gl.domElement.addEventListener('touchcancel', handleTouchCancel)
     
     return () => {
       gl.domElement.removeEventListener('mousemove', handleMouseMove)
       gl.domElement.removeEventListener('mousedown', handleMouseDown)
       document.removeEventListener('mouseup', handleMouseUp)
       document.removeEventListener('keydown', handleKeyDown)
+      
+      gl.domElement.removeEventListener('touchstart', handleTouchStart)
+      gl.domElement.removeEventListener('touchmove', handleTouchMove)
+      gl.domElement.removeEventListener('touchend', handleTouchEnd)
+      gl.domElement.removeEventListener('touchcancel', handleTouchCancel)
+      
       if (window.disableMouseControl) delete window.disableMouseControl
       if (window.enableMouseControl) delete window.enableMouseControl
     }
@@ -259,10 +323,12 @@ export default function Player({ position = [0, 5, 0], isSitting = false, seatPo
     }
 
     // --- 1. 相機旋轉邏輯 ---
-    // 只有在滑鼠控制啟用時才應用旋轉
+    // 只有在滑鼠/觸摸控制啟用時才應用旋轉
     if (mouseControlEnabled.current && (Math.abs(rotationDelta.current.x) > 0 || Math.abs(rotationDelta.current.y) > 0)) {
-      // 靈敏度係數，可根據需求微調
-      const sensitivity = 0.002 
+      // 靈敏度係數，觸摸設備稍微降低靈敏度
+      const isTouchDevice = isTouching.current || ('ontouchstart' in window)
+      const sensitivity = isTouchDevice ? 0.0015 : 0.002
+      
       euler.current.y -= rotationDelta.current.x * sensitivity
       euler.current.x -= rotationDelta.current.y * sensitivity
       euler.current.x = Math.max(-PI_2, Math.min(PI_2, euler.current.x))
@@ -279,6 +345,15 @@ export default function Player({ position = [0, 5, 0], isSitting = false, seatPo
     if (isSitting) return
     
     const keys = get()
+    
+    // 移動端虛擬搖桿支持：合併鍵盤和移動端輸入
+    const mobileState = window.mobileMoveState || {}
+    const moveKeys = {
+      forward: keys.forward || mobileState.forward,
+      backward: keys.backward || mobileState.backward,
+      left: keys.left || mobileState.left,
+      right: keys.right || mobileState.right
+    }
     // 獲取相機的水平方向（不包含 Y 軸傾斜）- 使用緩存的 Vector3
     camera.getWorldDirection(forwardVectorRef.current)
     forwardVectorRef.current.y = 0 
@@ -288,10 +363,10 @@ export default function Player({ position = [0, 5, 0], isSitting = false, seatPo
     rightVectorRef.current.normalize()
 
     moveVectorRef.current.set(0, 0, 0)
-    if (keys.forward) moveVectorRef.current.add(forwardVectorRef.current)
-    if (keys.backward) moveVectorRef.current.sub(forwardVectorRef.current)
-    if (keys.right) moveVectorRef.current.add(rightVectorRef.current)
-    if (keys.left) moveVectorRef.current.sub(rightVectorRef.current)
+    if (moveKeys.forward) moveVectorRef.current.add(forwardVectorRef.current)
+    if (moveKeys.backward) moveVectorRef.current.sub(forwardVectorRef.current)
+    if (moveKeys.right) moveVectorRef.current.add(rightVectorRef.current)
+    if (moveKeys.left) moveVectorRef.current.sub(rightVectorRef.current)
     
     const velocity = rigidBodyRef.current.linvel()
     

@@ -246,7 +246,7 @@ function App() {
       {showInstructions && (
         <div className="instructions">
           <h2>點擊畫面開始</h2>
-          <p>WASD - 移動</p>
+          <p>WASD / 左側搖桿 - 移動</p>
           <p>按住滑鼠左鍵拖動 - 視角</p>
           <p>點擊藝術品查看詳情</p>
         </div>
