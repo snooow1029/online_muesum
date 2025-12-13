@@ -20,7 +20,16 @@ export default function Player({ position = [0, 5, 0], isSitting = false, seatPo
   const maxDistance = 10 
   
   // 優化 2: 用來控制 Raycaster 頻率的計時器
-  const raycastTimer = useRef(0) 
+  const raycastTimer = useRef(0)
+  
+  // 優化 3: 緩存可交互對象列表，避免每幀遍歷整個場景
+  const interactableObjectsRef = useRef([])
+  
+  // 優化 4: 復用 Vector3 對象，避免每幀創建新對象
+  const forwardVectorRef = useRef(new THREE.Vector3())
+  const rightVectorRef = useRef(new THREE.Vector3())
+  const moveVectorRef = useRef(new THREE.Vector3())
+  const targetCameraPosRef = useRef(new THREE.Vector3()) 
   
   // Mouse control refs
   const isMouseDown = useRef(false)
@@ -32,6 +41,39 @@ export default function Player({ position = [0, 5, 0], isSitting = false, seatPo
 
   // 新增一個 Ref 來記錄是否剛載入
   const isInitialized = useRef(false)
+
+  // 優化 5: 收集可交互對象（只在場景變化時執行一次）
+  useEffect(() => {
+    const collectInteractableObjects = () => {
+      const interactables = []
+      scene.traverse((child) => {
+        if (child.isMesh && (child.userData.isInteractable || child.userData.isArtwork)) {
+          interactables.push(child)
+        }
+      })
+      interactableObjectsRef.current = interactables
+      // 只在開發環境輸出日誌
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`Player: Collected ${interactables.length} interactable objects`)
+      }
+    }
+    
+    // 延遲收集，確保場景已完全加載
+    const timeoutId = setTimeout(collectInteractableObjects, 2000)
+    
+    // 監聽場景變化，重新收集
+    const handleSceneUpdate = () => {
+      collectInteractableObjects()
+    }
+    scene.addEventListener('added', handleSceneUpdate)
+    scene.addEventListener('removed', handleSceneUpdate)
+    
+    return () => {
+      clearTimeout(timeoutId)
+      scene.removeEventListener('added', handleSceneUpdate)
+      scene.removeEventListener('removed', handleSceneUpdate)
+    }
+  }, [scene])
 
   useEffect(() => {
 
@@ -129,7 +171,9 @@ export default function Player({ position = [0, 5, 0], isSitting = false, seatPo
       if (standingYRef.current === null) {
         const currentPos = rigidBodyRef.current.translation()
         standingYRef.current = currentPos.y
-        console.log('Saved standing Y position:', standingYRef.current)
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Saved standing Y position:', standingYRef.current)
+        }
       }
       
       // 禁用移動
@@ -170,7 +214,9 @@ export default function Player({ position = [0, 5, 0], isSitting = false, seatPo
       if (mouseControlEnabled.current) {
         mouseControlEnabled.current = false
         gl.domElement.style.cursor = 'default'
-        console.log('Mouse control disabled (sitting)')
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Mouse control disabled (sitting)')
+        }
       }
       
       return // 坐下時不執行其他邏輯
@@ -196,7 +242,9 @@ export default function Player({ position = [0, 5, 0], isSitting = false, seatPo
         )
         camera.position.lerp(targetCameraPos, 0.3)
         
-        console.log('Restored standing Y position:', standingYRef.current)
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Restored standing Y position:', standingYRef.current)
+        }
         standingYRef.current = null // 清除保存的高度
       }
       
@@ -204,7 +252,9 @@ export default function Player({ position = [0, 5, 0], isSitting = false, seatPo
       if (!mouseControlEnabled.current) {
         mouseControlEnabled.current = true
         gl.domElement.style.cursor = 'grab'
-        console.log('Mouse control re-enabled (standing)')
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Mouse control re-enabled (standing)')
+        }
       }
     }
 
@@ -229,29 +279,27 @@ export default function Player({ position = [0, 5, 0], isSitting = false, seatPo
     if (isSitting) return
     
     const keys = get()
-    // 獲取相機的水平方向（不包含 Y 軸傾斜）
-    const forwardVector = new THREE.Vector3()
-    camera.getWorldDirection(forwardVector)
-    forwardVector.y = 0 
-    forwardVector.normalize()
+    // 獲取相機的水平方向（不包含 Y 軸傾斜）- 使用緩存的 Vector3
+    camera.getWorldDirection(forwardVectorRef.current)
+    forwardVectorRef.current.y = 0 
+    forwardVectorRef.current.normalize()
 
-    const rightVector = new THREE.Vector3()
-    rightVector.crossVectors(forwardVector, new THREE.Vector3(0, 1, 0))
-    rightVector.normalize()
+    rightVectorRef.current.crossVectors(forwardVectorRef.current, new THREE.Vector3(0, 1, 0))
+    rightVectorRef.current.normalize()
 
-    const moveVector = new THREE.Vector3()
-    if (keys.forward) moveVector.add(forwardVector)
-    if (keys.backward) moveVector.sub(forwardVector)
-    if (keys.right) moveVector.add(rightVector)
-    if (keys.left) moveVector.sub(rightVector)
+    moveVectorRef.current.set(0, 0, 0)
+    if (keys.forward) moveVectorRef.current.add(forwardVectorRef.current)
+    if (keys.backward) moveVectorRef.current.sub(forwardVectorRef.current)
+    if (keys.right) moveVectorRef.current.add(rightVectorRef.current)
+    if (keys.left) moveVectorRef.current.sub(rightVectorRef.current)
     
     const velocity = rigidBodyRef.current.linvel()
     
-    if (moveVector.length() > 0.01) {
-      moveVector.normalize()
-      moveVector.multiplyScalar(SPEED)
-      velocity.x = moveVector.x
-      velocity.z = moveVector.z
+    if (moveVectorRef.current.length() > 0.01) {
+      moveVectorRef.current.normalize()
+      moveVectorRef.current.multiplyScalar(SPEED)
+      velocity.x = moveVectorRef.current.x
+      velocity.z = moveVectorRef.current.z
     } else {
       // 增加阻尼感，讓停止更自然
       velocity.x *= 0.9
@@ -262,7 +310,7 @@ export default function Player({ position = [0, 5, 0], isSitting = false, seatPo
 
     // --- 3. 相機跟隨邏輯 (解決抖動的關鍵) ---
     const playerPosition = rigidBodyRef.current.translation()
-    const targetCameraPos = new THREE.Vector3(
+    targetCameraPosRef.current.set(
       playerPosition.x,
       playerPosition.y + HEAD_HEIGHT,
       playerPosition.z
@@ -270,22 +318,26 @@ export default function Player({ position = [0, 5, 0], isSitting = false, seatPo
     
     // 🔥 使用 lerp (線性插值) 來平滑移動相機，而不是直接 set
     // 0.2 是一個平滑係數，值越大越硬，越小越軟(會有延遲感)
-    camera.position.lerp(targetCameraPos, 0.25) 
+    camera.position.lerp(targetCameraPosRef.current, 0.25) 
 
 
     // --- 4. 互動檢測邏輯 (效能優化版) ---
     // 累加時間
     raycastTimer.current += delta
     
-    // 只有當累積時間超過 0.1秒 (100ms) 才執行一次檢測
-    if (raycastTimer.current > 0.1) {
+    // 只有當累積時間超過 0.15秒 (150ms) 才執行一次檢測（降低頻率以提升性能）
+    if (raycastTimer.current > 0.15) {
       raycastTimer.current = 0 // 重置計時器
 
       raycaster.current.setFromCamera(new THREE.Vector2(0, 0), camera)
       
-      // 優化建議：如果可以，只檢測特定的 Layer 或 Group，不要檢測 scene.children
-      // 這裡暫時保持 scene.children 但加上了時間節流
-      const intersects = raycaster.current.intersectObjects(scene.children, true)
+      // 🔥 性能優化：只檢測可交互對象，而不是整個場景
+      // 使用緩存的對象列表，避免每幀遍歷整個場景
+      const interactables = interactableObjectsRef.current.length > 0 
+        ? interactableObjectsRef.current 
+        : scene.children // 如果緩存為空，回退到舊方法
+      
+      const intersects = raycaster.current.intersectObjects(interactables, true)
 
       let foundArtwork = null
       for (const intersect of intersects) {
@@ -293,22 +345,8 @@ export default function Player({ position = [0, 5, 0], isSitting = false, seatPo
         
         const object = intersect.object
         
-        // 檢查邏輯：排除畫框（frame），只檢測真正的藝術品
-        const objectName = object.name.toLowerCase()
-        const parentName = object.parent?.name?.toLowerCase() || ''
-        const isArtwork = 
-          (objectName.includes('art') && !objectName.includes('frame')) ||
-          objectName.includes('painting') ||
-          objectName.includes('artwork') ||
-          object.userData.isArtwork === true ||
-          (object.parent && (
-            (parentName.includes('art') && !parentName.includes('frame')) ||
-            parentName.includes('painting') ||
-            parentName.includes('artwork') ||
-            object.parent.userData.isArtwork === true
-          ))
-
-        if (isArtwork) {
+        // 檢查邏輯：只檢測標記為可交互的藝術品
+        if (object.userData.isInteractable || object.userData.isArtwork) {
           // 只使用有 artworkData 的物件，避免顯示默認的 "Artifact"
           foundArtwork = object.userData.artworkData || 
                          (object.parent && object.parent.userData.artworkData)

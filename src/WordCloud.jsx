@@ -1,4 +1,4 @@
-import { useRef, useMemo } from 'react'
+import { useRef, useMemo, useEffect } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { Text, Billboard } from '@react-three/drei'
 import * as THREE from 'three'
@@ -16,6 +16,10 @@ function FloatingText({ text, type, radius, speed, index, total }) {
     const groupRef = useRef()
     const textRef = useRef()
     
+    // 性能優化：緩存材質引用，避免每幀遍歷
+    const materialRefs = useRef([])
+    const lastOpacityRef = useRef(-1) // 記錄上次的透明度，只在變化時更新
+    
     // 初始化位置 - 使用均勻分佈
     const { initialTheta, phi } = useMemo(() => {
       // 1. 均勻分佈角度
@@ -31,6 +35,20 @@ function FloatingText({ text, type, radius, speed, index, total }) {
   
     // 用來控制流動
     const currentTheta = useRef(initialTheta)
+    
+    // 初始化時收集材質引用（只執行一次）
+    useEffect(() => {
+      if (textRef.current) {
+        const materials = []
+        textRef.current.traverse((child) => {
+          if (child.isMesh && child.material) {
+            const mats = Array.isArray(child.material) ? child.material : [child.material]
+            materials.push(...mats.filter(m => m))
+          }
+        })
+        materialRefs.current = materials
+      }
+    }, [])
   
     useFrame((state, delta) => {
       if (groupRef.current && textRef.current) {
@@ -78,42 +96,35 @@ function FloatingText({ text, type, radius, speed, index, total }) {
         const baseOpacity = 0
         const finalOpacity = baseOpacity + opacity * (1 - baseOpacity)
   
-        // --- 3. 應用透明度 ---
+        // --- 3. 應用透明度（性能優化：只在變化超過閾值時更新）---
         
-        // drei Text 組件的 ref 會指向 Object3D，需要找到內部的 mesh
-        const textObject = textRef.current
-        
-        if (textObject) {
-          // 遍歷所有子元素，找到 mesh
-          textObject.traverse((child) => {
-            if (child.isMesh && child.material) {
-              // 處理材質可能是數組的情況
-              const materials = Array.isArray(child.material) ? child.material : [child.material]
+        // 只在透明度變化超過 0.01 時才更新材質（減少不必要的更新）
+        if (Math.abs(finalOpacity - lastOpacityRef.current) > 0.01) {
+          lastOpacityRef.current = finalOpacity
+          
+          // 使用緩存的材質引用，避免每幀遍歷
+          materialRefs.current.forEach(mat => {
+            if (mat) {
+              // 確保材質透明度開啟
+              mat.transparent = true
+              mat.opacity = finalOpacity
               
-              materials.forEach(mat => {
-                if (mat) {
-                  // 確保材質透明度開啟
-                  mat.transparent = true
-                  mat.opacity = finalOpacity
-                  
-                  // 如果是「解方(Solution)」，讓它亮的時候「發光」
-                  if (type === 'solution' && mat.emissiveIntensity !== undefined) {
-                    // 當 opacity 高時，emissive 強度也變高 (製造呼吸閃爍感)
-                    mat.emissiveIntensity = opacity * 2.5
-                  }
-                }
-              })
+              // 如果是「解方(Solution)」，讓它亮的時候「發光」
+              if (type === 'solution' && mat.emissiveIntensity !== undefined) {
+                // 當 opacity 高時，emissive 強度也變高 (製造呼吸閃爍感)
+                mat.emissiveIntensity = opacity * 2.5
+              }
             }
           })
           
           // 同時也嘗試修改 fillOpacity（如果 Text 組件支持）
-          if (textObject.fillOpacity !== undefined) {
-            textObject.fillOpacity = finalOpacity
+          if (textRef.current && textRef.current.fillOpacity !== undefined) {
+            textRef.current.fillOpacity = finalOpacity
           }
           
           // 如果文字有描邊，也一起淡入淡出
-          if (textObject.outlineOpacity !== undefined) {
-            textObject.outlineOpacity = finalOpacity
+          if (textRef.current && textRef.current.outlineOpacity !== undefined) {
+            textRef.current.outlineOpacity = finalOpacity
           }
         }
       }
