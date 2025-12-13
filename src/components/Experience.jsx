@@ -7,7 +7,6 @@ import { useThree } from '@react-three/fiber'
 import Player from './Player'
 import FutureRoom from '../FutureRoom'
 import ErrorBoundary from './ErrorBoundary'
-import MobileControls from './MobileControls'
 // TestArtifact 測試組件已移除，不再需要
 // Exhibits 組件已整合到 GalleryModel 中，不再需要單獨導入
 
@@ -612,11 +611,26 @@ function GalleryModel({ onSit, onSceneReady, openModal, isFutureRoom = false }) 
     }
   }
 
-  const handleClick = (e) => {
+  // 使用 ref 防止重复触发
+  const lastInteractionTime = useRef(0)
+  const INTERACTION_COOLDOWN = 300 // 300ms 冷却时间，防止重复触发
+  
+  // 处理交互的通用函数
+  const handleInteraction = (e) => {
     e.stopPropagation()
+    
+    // 防止短时间内重复触发
+    const now = Date.now()
+    if (now - lastInteractionTime.current < INTERACTION_COOLDOWN) {
+      return
+    }
+    lastInteractionTime.current = now
+    
     const obj = e.object
     
-    console.log('GalleryModel clicked:', obj.name, 'isInteractable:', obj.userData.isInteractable, 'isSeat:', obj.userData.isSeat)
+    if (process.env.NODE_ENV === 'development') {
+      console.log('GalleryModel interacted:', obj.name, 'isInteractable:', obj.userData.isInteractable, 'isSeat:', obj.userData.isSeat, 'pointerType:', e.pointerType)
+    }
     
     // 先檢查是否是懶骨頭
     const isSeat = obj.userData.isSeat || obj.parent?.userData.isSeat
@@ -628,7 +642,9 @@ function GalleryModel({ onSit, onSceneReady, openModal, isFutureRoom = false }) 
         obj.userData.isFutureRoomSeat ||
         obj.parent?.userData.isFutureRoomSeat
       
-      console.log('Seat clicked! isFutureRoom:', isFutureRoomSeat)
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Seat interacted! isFutureRoom:', isFutureRoomSeat)
+      }
       // 只傳遞 isFutureRoom 標識，不傳遞位置（因為不需要移動視角）
       onSit(null, isFutureRoomSeat)
       return
@@ -641,7 +657,9 @@ function GalleryModel({ onSit, onSceneReady, openModal, isFutureRoom = false }) 
     }
     
     if (interactableObj && interactableObj.userData.isInteractable) {
-      console.log('Found interactable object:', interactableObj.name)
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Found interactable object:', interactableObj.name)
+      }
       const data = ARTWORK_DATA[interactableObj.name] || { 
         title: interactableObj.name || '未命名作品', 
         desc: '這是一件美麗的藝術品。',
@@ -679,6 +697,20 @@ function GalleryModel({ onSit, onSceneReady, openModal, isFutureRoom = false }) 
       }
     }
   }
+  
+  // 点击事件处理（桌面端和移动端都支持）
+  const handleClick = (e) => {
+    handleInteraction(e)
+  }
+  
+  // 触摸事件处理（移动端）- 使用 onPointerDown 作为备用
+  const handlePointerDown = (e) => {
+    // React Three Fiber 的 onClick 应该已经支持触摸，但添加 onPointerDown 作为备用
+    // 只在触摸设备上处理，避免与鼠标事件冲突
+    if (e.pointerType === 'touch') {
+      handleInteraction(e)
+    }
+  }
 
   // 添加调试信息并通知父组件 scene 已准备好
   useEffect(() => {
@@ -699,6 +731,7 @@ function GalleryModel({ onSit, onSceneReady, openModal, isFutureRoom = false }) 
       onPointerOver={handlePointerOver}
       onPointerOut={handlePointerOut}
       onClick={handleClick}
+      onPointerDown={handlePointerDown}
     />
   )
 }
@@ -731,7 +764,7 @@ function WallText() {
         >
           ORANGE TECH EXHIBITION
         </Text>
-
+      
         {/* 主標題 */}
         <Text
           position={[0, 0, 0]}
@@ -880,9 +913,6 @@ export default function Experience({ onArtifactInteract, onSit, wordCloudData = 
           position={[35, 8, 60]} 
         />
       </Physics>
-      
-      {/* Mobile Controls - 移动端虚拟摇杆 */}
-      <MobileControls />
       
       {/* Post Processing - Bloom effect for glowing edges */}
       {/* 暂时注释掉，避免错误 */}

@@ -6,6 +6,7 @@ import Experience from './components/Experience'
 import FamilyFrame from './components/FamilyFrame'
 import FamilyIntroModal from './components/FamilyIntroModal'
 import PhoneInput from './PhoneInput'
+import MobileControls from './components/MobileControls'
 import './App.css'
 
 function LoadingFallback() {
@@ -145,18 +146,80 @@ function App() {
   }
 
   useEffect(() => {
+    let hasInteracted = false
+    
+    // 检查目标是否是 UI 元素
+    const isUIElement = (target) => {
+      return target.closest('.instructions') || 
+             target.closest('.artwork-modal') ||
+             target.closest('.artwork-modal-overlay') ||
+             target.closest('.family-modal') ||
+             target.closest('.phone-overlay') ||
+             target.closest('.mobile-controls') ||
+             target.closest('.joystick-container') ||
+             target.closest('.crosshair')
+    }
+    
+    // 检查是否点击/触摸在 Canvas 上
+    const isCanvasInteraction = (target) => {
+      const isCanvas = target.tagName === 'CANVAS' || target.closest('canvas')
+      return isCanvas && !isUIElement(target)
+    }
+
+    // 监听点击事件（桌面端）
     const handleClick = (e) => {
-      if (isLookingAtArtwork && selectedArtwork) {
+      if (hasInteracted) return
+      
+      if (isCanvasInteraction(e.target)) {
+        hasInteracted = true
+        setShowInstructions(false)
+      }
+      
+      // 处理艺术品点击
+      if (isLookingAtArtwork && selectedArtwork && isCanvasInteraction(e.target)) {
         setShowModal(true)
       }
-      // Hide instructions after first click
-      setShowInstructions(false)
+    }
+    
+    // 监听触摸事件（移动端）- 使用 touchend 更接近点击行为
+    let touchStartTarget = null
+    
+    const handleTouchStart = (e) => {
+      // 记录触摸开始时的目标
+      touchStartTarget = e.target
+    }
+    
+    const handleTouchEnd = (e) => {
+      if (hasInteracted) {
+        touchStartTarget = null
+        return
+      }
+      
+      // 检查触摸开始和结束是否在同一目标（避免滑动）
+      const touch = e.changedTouches[0]
+      if (!touch) return
+      
+      const endTarget = document.elementFromPoint(touch.clientX, touch.clientY)
+      const target = endTarget || touchStartTarget
+      
+      // 只在触摸 Canvas 时隐藏提示框，不触摸 UI 元素
+      if (target && isCanvasInteraction(target)) {
+        hasInteracted = true
+        setShowInstructions(false)
+      }
+      
+      touchStartTarget = null
     }
 
     document.addEventListener('click', handleClick)
+    // 使用 passive: true 避免阻止滚动
+    document.addEventListener('touchstart', handleTouchStart, { passive: true })
+    document.addEventListener('touchend', handleTouchEnd, { passive: true })
     
     return () => {
       document.removeEventListener('click', handleClick)
+      document.removeEventListener('touchstart', handleTouchStart)
+      document.removeEventListener('touchend', handleTouchEnd)
     }
   }, [isLookingAtArtwork, selectedArtwork])
 
@@ -242,6 +305,9 @@ function App() {
       
       {/* Crosshair */}
       <div className={`crosshair ${isLookingAtArtwork ? 'interactive' : ''}`} />
+      
+      {/* Mobile Controls - 移动端虚拟摇杆（必须在 Canvas 外部） */}
+      <MobileControls />
       
       {showInstructions && (
         <div className="instructions">

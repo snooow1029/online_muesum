@@ -204,11 +204,11 @@ export default function Player({ position = [0, 5, 0], isSitting = false, seatPo
     document.addEventListener('mouseup', handleMouseUp) 
     document.addEventListener('keydown', handleKeyDown)
     
-    // Touch events
+    // Touch events - 设置 passive: false 以允许 preventDefault
     gl.domElement.addEventListener('touchstart', handleTouchStart, { passive: false })
     gl.domElement.addEventListener('touchmove', handleTouchMove, { passive: false })
-    gl.domElement.addEventListener('touchend', handleTouchEnd)
-    gl.domElement.addEventListener('touchcancel', handleTouchCancel)
+    gl.domElement.addEventListener('touchend', handleTouchEnd, { passive: false })
+    gl.domElement.addEventListener('touchcancel', handleTouchCancel, { passive: false })
     
     return () => {
       gl.domElement.removeEventListener('mousemove', handleMouseMove)

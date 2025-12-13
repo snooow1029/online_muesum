@@ -73,9 +73,13 @@
 .screen-content {
   flex: 1;
   padding: 20px 28px;
+  padding-bottom: 100px; /* 为底部按钮和home indicator留出足够空间 */
   display: flex;
   flex-direction: column;
   padding-top: 40px; /* 避開瀏海 */
+  overflow-y: auto; /* 允许内容滚动 */
+  -webkit-overflow-scrolling: touch; /* iOS 平滑滚动 */
+  min-height: 0; /* 允许 flex 子元素缩小 */
 }
 
 /* 狀態列 */
@@ -153,7 +157,13 @@
 }
 
 /* --- 6. 輸入表單 --- */
-.input-form { display: flex; flex-direction: column; gap: 20px; }
+.input-form { 
+  display: flex; 
+  flex-direction: column; 
+  gap: 20px;
+  flex: 1;
+  min-height: 0; /* 允许 flex 子元素缩小 */
+}
 
 .input-group label {
   display: block; font-size: 0.9rem; color: var(--text-gray); margin-bottom: 8px; font-family: var(--font-sans);
@@ -187,7 +197,7 @@
 
 /* --- 7. 發送按鈕 (動態變色) --- */
 .submit-btn {
-  margin-top: 10px;
+  margin-top: auto; /* 推到底部 */
   width: 100%;
   padding: 16px;
   border: none;
@@ -199,6 +209,7 @@
   transition: all 0.3s ease;
   box-shadow: 0 4px 12px rgba(0,0,0,0.1);
   font-family: var(--font-sans);
+  flex-shrink: 0; /* 防止按钮被压缩 */
 }
 
 /* 按鈕顏色變化 */
@@ -223,22 +234,161 @@
 
 /* --- Footer --- */
 .exit-text-btn {
-  margin-top: auto;
-  background: none; border: none;
-  color: #aaa; font-size: 0.85rem;
-  cursor: pointer; padding: 20px;
+  position: absolute;
+  bottom: 50px; /* 在 home indicator 上方 */
+  left: 0;
+  right: 0;
+  background: none; 
+  border: none;
+  color: #aaa; 
+  font-size: 0.85rem;
+  cursor: pointer; 
+  padding: 16px 20px;
   font-family: var(--font-serif);
   transition: color 0.3s;
+  z-index: 10;
 }
 .exit-text-btn:hover { color: var(--text-dark); }
 
 .home-indicator {
-  position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%);
-  width: 120px; height: 5px; background: #000; border-radius: 10px; opacity: 0.2;
+  position: absolute; 
+  bottom: 8px; 
+  left: 50%; 
+  transform: translateX(-50%);
+  width: 120px; 
+  height: 5px; 
+  background: #000; 
+  border-radius: 10px; 
+  opacity: 0.2;
+  z-index: 5;
 }
 
-/* RWD */
+/* RWD - 移动端适配 */
+@media (max-width: 768px) {
+  .phone-overlay {
+    padding: 20px;
+  }
+  
+  .phone-frame {
+    width: 90vw;
+    max-width: 400px;
+    height: 85vh;
+    max-height: 700px;
+    border-radius: 32px;
+    border: 8px solid #2a2a2a;
+    transform: none;
+  }
+  
+  .phone-screen {
+    border-radius: 24px;
+  }
+  
+  .phone-notch {
+    width: 100px;
+    height: 24px;
+  }
+  
+  .screen-content {
+    padding: 20px 20px;
+    padding-top: 45px;
+    padding-bottom: 90px; /* 移动端增加底部空间 */
+  }
+  
+  .exit-text-btn {
+    bottom: 55px;
+    padding: 14px 20px;
+  }
+  
+  .home-indicator {
+    bottom: 10px;
+  }
+  
+  .app-title {
+    font-size: 1.4rem;
+  }
+  
+  .mode-tab {
+    padding: 10px;
+    font-size: 0.85rem;
+  }
+  
+  .prompt-card {
+    padding: 16px;
+    margin-bottom: 20px;
+  }
+  
+  .system-question {
+    font-size: 1rem;
+  }
+  
+  .elegant-textarea {
+    min-height: 120px;
+    padding: 12px;
+    font-size: 0.95rem;
+  }
+  
+  .submit-btn {
+    padding: 14px;
+    font-size: 0.95rem;
+  }
+  
+  .exit-text-btn {
+    padding: 16px;
+    font-size: 0.8rem;
+  }
+}
+
+/* 小屏幕手机优化 */
 @media (max-width: 400px) {
-  .phone-frame { width: 100%; height: 100%; border-radius: 0; border: none; transform: none; }
-  .screen-content { padding: 20px; padding-top: 60px; }
+  .phone-overlay {
+    padding: 15px;
+  }
+  
+  .phone-frame {
+    width: 92vw;
+    max-width: 360px;
+    height: 88vh;
+    max-height: 650px;
+    border-radius: 28px;
+    border: 6px solid #2a2a2a;
+  }
+  
+  .screen-content {
+    padding: 18px 16px;
+    padding-top: 40px;
+    padding-bottom: 85px; /* 小屏幕增加底部空间 */
+  }
+  
+  .exit-text-btn {
+    bottom: 50px;
+    padding: 12px 16px;
+    font-size: 0.75rem;
+  }
+  
+  .home-indicator {
+    bottom: 8px;
+    width: 100px;
+  }
+  
+  .app-title {
+    font-size: 1.2rem;
+  }
+  
+  .mode-tab {
+    padding: 8px;
+    font-size: 0.8rem;
+  }
+  
+  .prompt-card {
+    padding: 14px;
+  }
+  
+  .system-question {
+    font-size: 0.9rem;
+  }
+  
+  .elegant-textarea {
+    min-height: 100px;
+    font-size: 0.9rem;
+  }
 }

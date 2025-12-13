@@ -152,6 +152,78 @@
   pointer-events: auto;
 }
 
+/* 移动端适配 */
+@media (max-width: 768px) {
+  .artwork-modal {
+    width: 90vw;
+    max-width: 500px;
+    max-height: 85vh;
+    padding: 28px 24px;
+    border-radius: 18px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+  
+  .artwork-modal h2 {
+    font-size: 1.5rem;
+    margin-bottom: 0.8rem;
+    padding-bottom: 8px;
+    letter-spacing: 1px;
+  }
+  
+  .artwork-modal p {
+    font-size: 16px;
+    line-height: 1.7;
+    margin-bottom: 12px;
+  }
+  
+  .artwork-modal .art-question {
+    font-size: 15px;
+    padding: 12px;
+    margin-top: 16px;
+    margin-bottom: 12px;
+  }
+  
+  .artwork-modal .close-btn {
+    width: 36px;
+    height: 36px;
+    font-size: 24px;
+    line-height: 36px;
+    top: 12px;
+    right: 12px;
+  }
+}
+
+/* 小屏幕手机优化 */
+@media (max-width: 400px) {
+  .artwork-modal {
+    width: 92vw;
+    max-width: 380px;
+    max-height: 88vh;
+    padding: 24px 20px;
+    border-radius: 16px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+  
+  .artwork-modal h2 {
+    font-size: 1.3rem;
+    margin-bottom: 0.6rem;
+  }
+  
+  .artwork-modal p {
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  
+  .artwork-modal .art-question {
+    font-size: 14px;
+    padding: 10px;
+  }
+}
+
 .artwork-modal.show {
   display: block;
 }
