@@ -13,10 +13,10 @@ const ARTWORK_DATA = {
 當視覺被門板阻隔後，我們對於「聽覺赤裸」的焦慮反而被放大了。在安靜的空間裡，生理聲響彷彿成為了一種公開的審判，讓我們在原本該放鬆的時刻，反而感到緊繃與羞恥。`,
     audio: '/audio/voice_01.mp3'
   },
-  'Art_02': {
+  'Art002': {
     title: '未來的種子',
     desc: '一顆種子，乘載著對環境復甦的希望。',
-    audio: '/audio/voice_02.mp3'
+    // audio: '/audio/voice_02.mp3'
   },
   'Art003': {
     title: '色盲矯正眼鏡',
