@@ -2,7 +2,7 @@
 
 **Live Demo:** https://wp1141-weld.vercel.app/
 
-![Homepage](images/homepage.png)
+![Homepage](public/images/homepage.png)
 
 A first-person perspective online exhibition that transcends the boundaries of virtual space—this is not merely a virtual gallery, but a living blueprint that can be brought into a real apartment.
 
